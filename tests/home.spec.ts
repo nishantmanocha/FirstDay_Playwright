@@ -1,55 +1,84 @@
 import { test, expect } from '@playwright/test';
 
+test.describe('Testing assertions', () => {
+  // closing brace was missing for the describe block
+  let runId = '';
 
-test('has title', async ({ page }) => {
-  await page.goto('https://nishant-manocha.vercel.app/');
+  test.beforeAll(() => {
+    runId = `run-${Date.now()}`;
+  });
 
-  // Expect a title "to contain" a substring.
-  await expect(page).toHaveTitle(/Nishant Manocha/);
-});
+  test.afterAll(() => {
+    expect(runId).toMatch(/^run-\d+$/);
+  });
 
-test('has url', async ({ page }) => {
-  await page.goto('https://nishant-manocha.vercel.app/');
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+  });
 
-  await expect(page).toHaveURL(/vercel.app/);
-});
+  test.afterEach(async ({ page }) => {
+    await expect(page).toHaveURL(/vercel\.app/);
+    await expect(page).not.toHaveTitle(/404|not found/i);
+  });
 
-test('checking element using css', async ({ page }) => {
-  await page.goto('https://nishant-manocha.vercel.app/');
+  test('has title', async ({ page }) => {
+    await expect(page).toHaveTitle(/Nishant Manocha/);
+  });
 
-  const el = page.locator('h1');
+  test('has url', async ({ page }) => {
+    await expect(page).toHaveURL(/vercel\.app/);
+  });
 
-  await expect(el).toBeVisible();
-});
+  test('checking element using css', async ({ page }) => {
+    await expect(page.locator('h1')).toBeVisible();
+  });
 
-test('checking element using getbytext', async ({ page }) => {
-  await page.goto('https://nishant-manocha.vercel.app/');
+  test('checking element using getbytext', async ({ page }) => {
+    await expect(page.getByText('WELCOME TO MY WORLD')).toBeVisible();
+  });
 
-  const el = page.getByText('WELCOME TO MY WORLD');
+  test('checking element using getbyrole', async ({ page }) => {
+    const viewProjectsButton = page.getByRole('button', { name: 'View Projects' });
+    await expect(viewProjectsButton).toBeVisible();
+    await viewProjectsButton.click();
 
-  await expect(el).toBeVisible();
-});
+    await expect(
+      page.locator('.grid.md\\:grid-cols-2.lg\\:grid-cols-3.gap-8.mb-12')
+    ).toBeVisible();
+  });
 
-test('checking element using getbyrole', async ({ page }) => {
-  await page.goto('https://nishant-manocha.vercel.app/');
+  test('view projects button is enabled and focusable', async ({ page }) => {
+    const viewProjectsButton = page.getByRole('button', { name: 'View Projects' });
+    await expect(viewProjectsButton).toBeEnabled();
 
-  const el = page.getByRole('button', { name: 'View Projects' });
+    await viewProjectsButton.focus();
+    await expect(viewProjectsButton).toBeFocused();
+  });
 
-  await expect(el).toBeVisible();
+  test('page has viewport meta tag', async ({ page }) => {
+    const viewport = page.locator('meta[name="viewport"]');
+    await expect(viewport).toHaveCount(1);
 
-  await el.click();
+    const content = await viewport.getAttribute('content');
+    expect(content).toContain('width=device-width');
+  });
 
-  await expect(
-  page.locator('.grid.md\\:grid-cols-2.lg\\:grid-cols-3.gap-8.mb-12')
-).toBeVisible();
-});
+  test('page has at least one button', async ({ page }) => {
+    const buttonCount = await page.locator('button, [role="button"]').count();
+    expect(buttonCount).toBeGreaterThan(0);
+  });
 
-test('checking element using hover', async ({ page }) => {
-  await page.goto('https://nishant-manocha.vercel.app/');
+  test('welcome text appears once', async ({ page }) => {
+    await expect(page.getByText('WELCOME TO MY WORLD')).toHaveCount(1);
+  });
 
-  const el = page.getByRole('button', { name: 'View Projects' });
+  test('h1 contains a name', async ({ page }) => {
+    await expect(page.locator('h1')).toContainText(/nishant/i);
+  });
 
-  await expect(el).toBeVisible();
+  test('document is fully loaded', async ({ page }) => {
+    const readyState = await page.evaluate(() => document.readyState);
+    expect(readyState).toBe('complete');
+  });
 
-  await el.hover();
 });
